@@ -8,23 +8,68 @@
 
 import UIKit
 
-class MasterViewController: UITableViewController {
+class MasterViewController: UITableViewController, WeatherGetterDelegate {
 
     var detailViewController: DetailViewController? = nil
-    var objects = [Any]()
-
+    var weather: WeatherGetter!
+    var weatherList = [Any]()
+    var spinner = UIActivityIndicatorView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
-        self.navigationItem.leftBarButtonItem = self.editButtonItem
+        self.setupSpinner()
+        self.navigationItem.title = "Weather"
 
-        let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(insertNewObject(_:)))
-        self.navigationItem.rightBarButtonItem = addButton
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Refresh", style: .plain, target: self, action: #selector(refreshButtonAction))
+        weather = WeatherGetter(delegate: self)
+        self.startGettingWeatherInformation()        
         if let split = self.splitViewController {
             let controllers = split.viewControllers
             self.detailViewController = (controllers[controllers.count-1] as! UINavigationController).topViewController as? DetailViewController
         }
+    }
+
+    func startGettingWeatherInformation()
+    {
+        spinner.startAnimating()
+        weather.getWeatherFromOpenWeatherMap()
+    }
+    
+    func didreceiveWeather(weatherList: [Any]) {
+        
+         self.weatherList = weatherList
+        self.tableView.reloadData()
+        spinner.stopAnimating()
+
+        print("received")
+
+    }
+    func didNotreceiveWeather(error: NSError) {
+        print("didNotGetWeather error: \(error)")
+        spinner.stopAnimating()
+        let alert = UIAlertController(title: "Error", message: "There seems to be an error connecting to the server. Please try again later.", preferredStyle: UIAlertControllerStyle.alert)
+        alert.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.default, handler: nil))
+        self.present(alert, animated: true, completion: nil)
+        self.spinner.stopAnimating()
+
+    }
+    func refreshButtonAction()
+    {
+        self.startGettingWeatherInformation()
+    }
+    
+    
+    func setupSpinner(){
+        
+        spinner = UIActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 60, height:60))
+        
+        self.spinner.center = self.view.center
+        self.spinner.activityIndicatorViewStyle = UIActivityIndicatorViewStyle.gray
+        let transform: CGAffineTransform = CGAffineTransform(scaleX: 1.5, y: 1.5)
+        self.spinner.transform = transform
+        self.view.addSubview(spinner)
+        spinner.hidesWhenStopped = true
+        
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -37,20 +82,16 @@ class MasterViewController: UITableViewController {
         // Dispose of any resources that can be recreated.
     }
 
-    func insertNewObject(_ sender: Any) {
-        objects.insert(NSDate(), at: 0)
-        let indexPath = IndexPath(row: 0, section: 0)
-        self.tableView.insertRows(at: [indexPath], with: .automatic)
-    }
+   
 
     // MARK: - Segues
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "showDetail" {
             if let indexPath = self.tableView.indexPathForSelectedRow {
-                let object = objects[indexPath.row] as! NSDate
-                let controller = (segue.destination as! UINavigationController).topViewController as! DetailViewController
-                controller.detailItem = object
+                let weather = weatherList[indexPath.row] as! Weather
+                var controller = (segue.destination as! UINavigationController).topViewController as! DetailViewController
+                controller.weather = weather
                 controller.navigationItem.leftBarButtonItem = self.splitViewController?.displayModeButtonItem
                 controller.navigationItem.leftItemsSupplementBackButton = true
             }
@@ -64,31 +105,17 @@ class MasterViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return objects.count
+        return weatherList.count
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
 
-        let object = objects[indexPath.row] as! NSDate
-        cell.textLabel!.text = object.description
+        let weather = weatherList[indexPath.row] as! Weather
+        cell.textLabel!.text = weather.name
+        cell.detailTextLabel?.text = "\(Int(round(weather.temp!)))°"
         return cell
     }
-
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
-        return true
-    }
-
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            objects.remove(at: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: .fade)
-        } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view.
-        }
-    }
-
 
 }
 

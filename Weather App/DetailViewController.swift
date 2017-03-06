@@ -8,24 +8,29 @@
 
 import UIKit
 
-class DetailViewController: UIViewController {
+class DetailViewController: UIViewController,UITableViewDelegate, UITableViewDataSource {
 
+    @IBOutlet var weatherDescription: UILabel!
+    @IBOutlet var Temperature: UILabel!
+    @IBOutlet var tableView: UITableView!
     @IBOutlet weak var detailDescriptionLabel: UILabel!
+    var weather: Weather?
 
 
     func configureView() {
         // Update the user interface for the detail item.
-        if let detail = self.detailItem {
-            if let label = self.detailDescriptionLabel {
-                label.text = detail.description
-            }
-        }
+        
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         self.configureView()
+        self.tableView.delegate = self
+        self.navigationItem.title = weather?.name
+        self.Temperature.text = "\(Int(round((weather?.temp!)!)))°"
+        self.weatherDescription.text = weather?.weatherDescription?[0].description
+      
     }
 
     override func didReceiveMemoryWarning() {
@@ -40,6 +45,63 @@ class DetailViewController: UIViewController {
         }
     }
 
+    // MARK: - Table View
+    
+    func numberOfSections(in tableView: UITableView) -> Int {
+        
+        return 1
+        
+    }
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        
+        return 6
+        
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        
+            let cell = tableView.dequeueReusableCell(withIdentifier: "CustomCell")! as! DetailTableViewCell
+        switch (indexPath.row){
+        case 0:
+            cell.title.text = "Humidity:"
+            cell.value.text = "\(Int(round((weather?.humidity!)!)))%"
+            break
+            
+        case 1:
+            cell.title.text = "Pressure:"
+            cell.value.text = "\(Int(round((weather?.pressure!)!))) hPa"
+            break
+            
+        case 2:
+            cell.title.text = "Sunrise:"
+            cell.value.text = weather?.getSunriseTime() as String?
+            break
+            
+        case 3:
+            cell.title.text = "Sunset:"
+            cell.value.text = weather?.getSunsetTime() as String?
+            break
+            
+        case 4:
+            cell.title.text = "Minimum Temp:"
+            cell.value.text = "\(Int(round((weather?.temp_min!)!)))°"
+            break
+            
+        case 5:
+            cell.title.text = "Maximum Temp:"
+            cell.value.text = "\(Int(round((weather?.temp_max!)!)))°"
+            break
 
+        default : break
+        
+        }
+        cell.layer.backgroundColor = UIColor.clear.cgColor
+        return cell
+
+    }
+
+    
 }
 
